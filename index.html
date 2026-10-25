@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echo Quillo: learn a language by writing what you hear</title>
+<meta name="description" content="Echo Quillo is a dictation app for language learners. Listen to one sentence at a time, write it down, see your mistakes, and try again. Text, translation and transcription run on your device.">
+<meta property="og:title" content="Echo Quillo">
+<meta property="og:description" content="Get better at a language by writing down what you hear.">
+<meta property="og:image" content="icon.png">
+<link rel="icon" href="icon.png">
+<style>
+:root {
+  --canvas: #FFFAF0; --soft: #FAF5E8; --card: #F5F0E0; --hair: #CFC8B2;
+  --ink: #0A0A0A; --body: #3A3A3A; --muted: #555; --on-ink: #fff;
+  --pink: #FF4D8B; --teal: #1A3A3A; --lavender: #B8A4ED; --peach: #FFB084; --mint: #A4D4C5; --ochre: #E8B94A;
+  --ok: #166534; --bad: #B91C1C;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #0A1A1A; --soft: #122424; --card: #1A2A2A; --hair: #2E4040;
+    --ink: #FFFAF0; --body: #D9D4C7; --muted: #A0A0A0; --on-ink: #0A0A0A;
+    --ok: #4ADE80; --bad: #F87171;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--canvas); color: var(--body);
+  font: 17px/1.55 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+h1, h2, h3 { color: var(--ink); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin: 0; }
+a { color: inherit; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+section { padding: 72px 0; }
+
+header.nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; color: var(--ink); text-decoration: none; font-size: 19px; }
+.brand img { width: 36px; height: 36px; border-radius: 9px; }
+.nav a.link { text-decoration: none; margin-left: 22px; font-weight: 600; color: var(--muted); }
+.nav a.link:hover { color: var(--ink); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 14px 24px; border-radius: 999px;
+  background: var(--ink); color: var(--on-ink); font-weight: 700; text-decoration: none; border: 2px solid var(--ink);
+  transition: transform .15s;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn.ghost { background: transparent; color: var(--ink); }
+
+.hero { padding-top: 40px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+.hero h1 { font-size: clamp(38px, 6vw, 64px); }
+.hero h1 em { font-style: normal; background: var(--pink); color: #0A0A0A; padding: 0 .15em; border-radius: 12px; }
+.hero p.lead { font-size: 20px; margin: 22px 0 30px; max-width: 30em; }
+.cta { display: flex; gap: 12px; flex-wrap: wrap; }
+.privacy { margin-top: 18px; color: var(--muted); font-size: 15px; }
+
+/* demo card */
+.demo { background: var(--lavender); color: #0A0A0A; border-radius: 28px; padding: 22px; box-shadow: 0 24px 50px -24px rgba(0,0,0,.35); }
+.demo .tag { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+.player { display: flex; align-items: center; gap: 12px; margin: 14px 0; }
+.play { width: 46px; height: 46px; border-radius: 50%; background: #0A0A0A; color: #fff; border: 0; font-size: 16px; cursor: pointer; }
+.bars { display: flex; gap: 3px; align-items: center; height: 30px; flex: 1; }
+.bars i { flex: 1; background: #0A0A0A; border-radius: 3px; height: 30%; animation: bar 1.1s ease-in-out infinite; }
+@keyframes bar { 50% { height: 100%; } }
+.bars i:nth-child(3n) { animation-delay: .2s } .bars i:nth-child(3n+1) { animation-delay: .5s } .bars i:nth-child(5n) { animation-delay: .8s }
+.answer { background: var(--canvas); color: var(--ink); border-radius: 18px; padding: 16px 18px; font-size: 19px; min-height: 120px; }
+.answer .row { display: block; margin-bottom: 8px; }
+.answer .lbl { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.wrong { color: var(--bad); text-decoration: line-through; }
+.fix { color: var(--ok); font-weight: 700; }
+.score { margin-top: 10px; font-size: 14px; font-weight: 700; color: var(--ok); }
+
+/* tiles */
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+h2 { font-size: clamp(30px, 4.5vw, 44px); max-width: 16em; }
+.sub { margin: 16px 0 36px; max-width: 36em; font-size: 18px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.tile { border-radius: 24px; padding: 26px; color: #0A0A0A; min-height: 210px; }
+.tile h3 { color: #0A0A0A; font-size: 24px; margin: 14px 0 8px; }
+.tile p { margin: 0; color: #1c1c1c; }
+.tile .ico { font-size: 34px; }
+.t1 { background: var(--pink); } .t2 { background: var(--lavender); } .t3 { background: var(--peach); }
+
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; counter-reset: s; }
+.step { background: var(--card); border-radius: 20px; padding: 22px; border: 1px solid var(--hair); }
+.step::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-weight: 800; margin-bottom: 14px; }
+.step h3 { font-size: 20px; margin-bottom: 6px; }
+.step p { margin: 0; font-size: 16px; }
+
+.band { background: var(--teal); color: #FFFAF0; border-radius: 32px; padding: 56px 40px; }
+.band h2 { color: #FFFAF0; }
+.band .sub { color: #D9D4C7; }
+.feats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 40px; margin-top: 28px; }
+.feats div { padding-left: 28px; position: relative; color: #FFFAF0; }
+.feats div::before { content: ""; position: absolute; left: 0; top: .55em; width: 12px; height: 12px; border-radius: 50%; background: var(--mint); }
+.feats b { color: var(--mint); }
+
+.final { text-align: center; }
+.final h2 { margin: 0 auto; }
+.final .cta { justify-content: center; margin-top: 28px; }
+footer { padding: 36px 0 48px; color: var(--muted); font-size: 15px; border-top: 1px solid var(--hair); }
+footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+
+/* research */
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.why { background: var(--soft); border: 1px solid var(--hair); border-radius: 24px; padding: 26px; display: flex; flex-direction: column; }
+.why h3 { font-size: 22px; margin-bottom: 10px; }
+.why p { margin: 0 0 14px; }
+.why .cite { margin-top: auto; font-size: 14px; color: var(--muted); border-top: 1px solid var(--hair); padding-top: 12px; }
+.why .cite a { color: var(--ink); }
+.note { margin-top: 20px; font-size: 15px; color: var(--muted); max-width: 46em; }
+
+@media (max-width: 860px) {
+  .cards { grid-template-columns: 1fr; }
+  .hero { grid-template-columns: 1fr; gap: 36px; }
+  .tiles, .steps, .feats { grid-template-columns: 1fr; }
+  section { padding: 52px 0; }
+  .band { padding: 40px 24px; border-radius: 24px; }
+  .nav a.link { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .bars i { animation: none; height: 60%; } html { scroll-behavior: auto; } .btn:hover { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="nav">
+    <a class="brand" href="#"><img src="icon.png" alt="">Echo Quillo</a>
+    <nav>
+      <a class="link" href="#how">How it works</a>
+      <a class="link" href="#material">Your material</a>
+      <a class="link" href="#why">Why it works</a>
+      <a class="link" href="#private">Privacy</a>
+      <a class="link" href="https://github.com/guojianryan/DictationIOS">GitHub</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Get better at a language by <em>writing what you hear</em></h1>
+      <p class="lead">Echo Quillo plays one sentence at a time. You write it down, see exactly where you slipped, and try again, using material you choose.</p>
+      <div class="cta">
+        <a class="btn" href="https://github.com/guojianryan/DictationIOS">Get Echo Quillo</a>
+        <a class="btn ghost" href="#how">See how it works</a>
+      </div>
+      <p class="privacy">🔒 Your text, translation and transcription stay on your device.</p>
+    </div>
+
+    <div class="demo" aria-label="Example of an Echo Quillo exercise">
+      <div class="tag">Sentence 2 of 3 · German</div>
+      <div class="player">
+        <button class="play" id="play" aria-label="Replay sentence (demo)">▶</button>
+        <div class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="answer">
+        <span class="row"><span class="lbl">You wrote</span>Der Zug <span class="wrong">kommen</span> um <span class="wrong">sieben</span> Uhr an.</span>
+        <span class="row"><span class="lbl">Correct</span>Der Zug <span class="fix">kommt</span> um <span class="fix">acht</span> Uhr an.</span>
+        <div class="score">Nearly there. Try once more.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="material">
+    <div class="eyebrow">Your material</div>
+    <h2>Practice with what you actually want to learn</h2>
+    <p class="sub">Bring a podcast clip, a page from a book, or a text you wrote. Echo Quillo splits it into sentences so you can work through it one at a time.</p>
+    <div class="tiles">
+      <div class="tile t1"><div class="ico">¶</div><h3>From text</h3><p>Type or paste it, open a text file, or let AI write one for you.</p></div>
+      <div class="tile t2"><div class="ico">〰</div><h3>From audio</h3><p>Upload a recording like a podcast clip, or record yourself.</p></div>
+      <div class="tile t3"><div class="ico">◉</div><h3>From a photo</h3><p>Take a picture of a book page or choose a photo. The text is read from it.</p></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="eyebrow">How it works</div>
+    <h2>Listen. Write. Check. Repeat.</h2>
+    <p class="sub">Short loops beat long sessions. Each sentence is its own small win.</p>
+    <div class="steps">
+      <div class="step"><h3>Listen</h3><p>Hear one sentence, as many times as you need.</p></div>
+      <div class="step"><h3>Write</h3><p>Type what you heard, or record yourself saying it and get a pronunciation score.</p></div>
+      <div class="step"><h3>Check</h3><p>Mistakes and missing words are highlighted word by word.</p></div>
+      <div class="step"><h3>Try again</h3><p>Fix it, reveal the answer if you're stuck. Score 85% or more and the sentence is marked complete.</p></div>
+    </div>
+  </section>
+
+  <section id="why">
+    <div class="eyebrow">Why dictation works</div>
+    <h2>Writing what you hear makes you notice what you don't know yet</h2>
+    <p class="sub">Dictation is an old classroom technique. Research on memory and on language learning points to three reasons it is worth your time.</p>
+    <div class="cards">
+      <div class="why">
+        <h3>It makes you recall, not just recognize</h3>
+        <p>Reading or listening again feels productive, but pulling the answer out of memory builds stronger memories. In Roediger and Karpicke's experiments, students who practiced recalling a passage remembered more a week later than students who simply restudied it.</p>
+        <div class="cite">Roediger &amp; Karpicke (2006), <a href="https://doi.org/10.1111/j.1745-6916.2006.00012.x"><i>Perspectives on Psychological Science</i></a>. Known as the testing effect.</div>
+      </div>
+      <div class="why">
+        <h3>It shows you the gap</h3>
+        <p>Second-language researchers argue that producing language, rather than only taking it in, makes learners notice the difference between what they can say and what they need to say. A wrong word in your sentence is that gap, made visible.</p>
+        <div class="cite">Swain (1995), the output hypothesis. Dictation-style reconstruction tasks prompted noticing in <a href="https://archive.carla.umn.edu/cobaltt/modules/strategies/Dictogloss.pdf">Kowal &amp; Swain's classroom study</a>.</div>
+      </div>
+      <div class="why">
+        <h3>It trains ear, spelling and grammar together</h3>
+        <p>To write a sentence correctly you must catch the sounds, parse the words and spell and inflect them. Small classroom studies of regular dictation practice report gains in listening comprehension for second-language learners.</p>
+        <div class="cite">Evidence here is smaller and more mixed: studies are small and results vary by measure.</div>
+      </div>
+    </div>
+    <p class="note">An honest note: the strongest evidence is for retrieval practice in general. Studies of dictation itself are fewer and smaller. Echo Quillo is built on these ideas, not on a claim that any app guarantees fluency.</p>
+  </section>
+
+  <section id="private">
+    <div class="band">
+      <div class="eyebrow" style="color:#A4D4C5">Private by design</div>
+      <h2>Your practice stays yours</h2>
+      <p class="sub">Echo Quillo is built on Apple's on-device speech, text and language technology, so you can practice without an account. Text generation, translation, photo text and audio transcription all run on your device.</p>
+      <div class="feats">
+        <div><b>Progress tracking.</b> See how your practice adds up over time.</div>
+        <div><b>Pick up where you left off.</b> Continue your latest practice in one tap.</div>
+        <div><b>Light, dark and cool themes.</b> A warm, calm look that's easy on the eyes.</div>
+        <div><b>Works with your files.</b> Choose a folder, including iCloud Drive, to keep your sessions.</div>
+      </div>
+      <p class="sub" style="margin:28px 0 0;font-size:16px"><b style="color:#A4D4C5">About speech scoring.</b> Pronunciation scoring runs on your device when your language is supported there. For other languages you can choose to turn on Apple's speech service in Settings. It is off by default, and when it is on, those recordings are sent to Apple for recognition under Apple's privacy policy. When it is off, they never leave your device. <a href="privacy.html" style="color:#A4D4C5">Read the privacy policy</a>.</p>
+    </div>
+  </section>
+
+  <section class="final">
+    <h2>Start with one sentence</h2>
+    <div class="cta">
+      <a class="btn" href="https://github.com/guojianryan/DictationIOS">Get Echo Quillo</a>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Echo Quillo</span>
+    <span><a href="privacy.html">Privacy Policy</a> · <a href="https://github.com/guojianryan/DictationIOS">View on GitHub</a></span>
+  </div>
+</footer>
+<script>
+  // Demo only: pause/resume the waveform animation.
+  var p = document.getElementById('play'), bars = document.querySelector('.bars');
+  p.addEventListener('click', function () {
+    var paused = bars.style.animationPlayState === 'paused';
+    bars.querySelectorAll('i').forEach(function (i) { i.style.animationPlayState = paused ? 'running' : 'paused'; });
+    bars.style.animationPlayState = paused ? 'running' : 'paused';
+    p.textContent = paused ? '▶' : '❚❚';
+  });
+</script>
+</body>
+</html>
